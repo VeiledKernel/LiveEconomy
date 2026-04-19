@@ -1,3 +1,4 @@
+⚠️ This project is proprietary. Unauthorized use, copying, or redistribution is strictly prohibited.
 # LiveEconomy
 
 > Advanced market-driven economy system for Paper servers
