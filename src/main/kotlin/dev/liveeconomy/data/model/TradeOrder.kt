@@ -11,6 +11,8 @@ import java.util.UUID
  * Uses [ItemKey] for item identity — no direct Material dependency.
  */
 data class TradeOrder(
+    /** Stable unique ID — used for cancellation and storage keying. */
+    val orderId:     String = UUID.randomUUID().toString(),
     val playerUUID:  UUID,
     val playerName:  String,
     val item:        ItemKey,

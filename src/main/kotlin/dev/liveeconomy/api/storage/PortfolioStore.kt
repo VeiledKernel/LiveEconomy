@@ -23,6 +23,7 @@ interface PortfolioStore {
     fun getShortPositions(uuid: UUID): Map<ItemKey, ShortPosition>
     fun saveShortPosition(position: ShortPosition)
     fun removeShortPosition(uuid: UUID, item: ItemKey)
+    fun getAllShortPositions(): Map<UUID, Map<ItemKey, ShortPosition>>
 
     fun getPrestigeLevel(uuid: UUID): Int
     fun setPrestigeLevel(uuid: UUID, level: Int)

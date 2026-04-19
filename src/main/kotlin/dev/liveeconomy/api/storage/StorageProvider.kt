@@ -24,4 +24,5 @@ interface StorageProvider : Lifecycle {
     fun portfolio():   PortfolioStore
     fun price():       PriceStore
     fun transaction(): TransactionStore
+    fun order():       OrderStore
 }

@@ -15,7 +15,10 @@ data class MarketConfig(
     val tradeTaxPercent:          Double,
     val decayIntervalMinutes:     Long,
     val alertMaxPerPlayer:        Int,
-    val alertEnabled:             Boolean
+    val alertEnabled:             Boolean,
+    val marginEnabled:            Boolean,
+    val marginCallLevel:          Double,
+    val marginLiquidationLevel:   Double
 ) {
     /** Trade tax as a decimal rate (e.g. 2.0% → 0.02). */
     val tradeTaxRate: Double get() = tradeTaxPercent / 100.0
