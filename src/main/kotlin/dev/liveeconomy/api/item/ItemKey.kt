@@ -1,5 +1,7 @@
 package dev.liveeconomy.api.item
 
+import dev.liveeconomy.api.ExperimentalLiveEconomyAPI
+
 /**
  * Stable, version-safe identity for any tradable item.
  *
@@ -12,11 +14,18 @@ package dev.liveeconomy.api.item
  *   - Nexo:    `nexo:ruby`
  *
  * **Equality contract (Rule 12):** Two [ItemKey] instances are equal if
- * and only if their [id] values are equal. Implementations must be
- * `data class` to guarantee correct `equals`/`hashCode` in maps and caches.
+ * and only if their [id] values are equal. Implementations must override
+ * `equals` and `hashCode` based solely on [id] — no other fields may
+ * participate in equality. This guarantees correct behaviour in maps,
+ * sets, and price caches regardless of implementation class.
+ *
+ * Do NOT use `data class` for implementations if any non-identity property
+ * (e.g. `customDisplayName`) would be included in the generated
+ * `equals`/`hashCode`. Use a regular class with explicit overrides instead.
  *
  * @since 4.0 (Experimental — see ExperimentalLiveEconomyAPI)
  */
+@ExperimentalLiveEconomyAPI
 interface ItemKey {
 
     /** Full identifier: `"$namespace:$key"` — e.g. `"minecraft:diamond"` */

@@ -392,24 +392,36 @@ Applied to every generated file:
 
 ## Rule 12 — ItemKey Equality Contract
 
-`ItemKey` equality MUST be based solely on `id`. Implementations must be
-`data class` to get correct `equals`/`hashCode` for use in maps and caches.
+`ItemKey` equality MUST be based solely on `id`. Implementations must
+override `equals` and `hashCode` explicitly. Do NOT rely on `data class`
+generated methods if any non-identity property exists as a constructor param.
 
 ```kotlin
-// ✅ Correct — data class, equality on id
-data class VanillaItemKey(
+// ✅ Correct — regular class, id-only equality, display name outside identity
+class NexoItemKey(
     override val namespace: String,
-    override val key: String
+    override val key: String,
+    val customDisplayName: String? = null  // presentation only — excluded from equals
 ) : ItemKey {
-    override val id: String get() = "$namespace:$key"
+    override val id: String = "$namespace:$key"
+    override fun equals(other: Any?): Boolean = other is ItemKey && id == other.id
+    override fun hashCode(): Int = id.hashCode()
 }
 
-// Rule: two ItemKeys with the same id are equal.
-// No other fields may participate in equality.
+// ❌ Forbidden — customDisplayName pollutes equality via data class
+data class NexoItemKey(
+    override val namespace: String,
+    override val key: String,
+    private val customDisplayName: String? = null  // now part of equals — bug
+) : ItemKey
 ```
 
-This is mandatory. Without it: price caches silently miss, maps produce
-duplicate keys, storage misidentifies items.
+**Cross-class equality:** `VanillaItemKey("minecraft","diamond")` must equal
+any `ItemKey` where `id == "minecraft:diamond"`. Both implementations use
+`other is ItemKey && id == other.id` — NOT `other is VanillaItemKey`.
+
+Without this: price caches silently miss, maps produce duplicate keys,
+storage misidentifies items.
 
 ---
 

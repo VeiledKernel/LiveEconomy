@@ -1,5 +1,7 @@
 package dev.liveeconomy.api.item
 
+import dev.liveeconomy.api.ExperimentalLiveEconomyAPI
+
 import org.bukkit.Material
 
 /**
@@ -16,6 +18,7 @@ import org.bukkit.Material
  *
  * @since 4.0 (Experimental)
  */
+@ExperimentalLiveEconomyAPI
 interface ItemKeyMapper {
 
     /**
