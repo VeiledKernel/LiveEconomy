@@ -54,11 +54,12 @@ class TradeServiceImpl(
         targetPrice: Double, isBuyOrder: Boolean
     ): OrderResult {
         if (!registry.isListed(item)) return OrderResult.NotListed
-        return orders.place(player, item, quantity, targetPrice, isBuyOrder)
+        // Extract Bukkit values at the API boundary — OrderBook is UUID-based
+        return orders.place(player.uniqueId, player.name, item, quantity, targetPrice, isBuyOrder)
     }
 
     override fun cancelLimitOrder(player: Player, orderId: String): OrderResult =
-        orders.cancel(player, orderId)
+        orders.cancel(player.uniqueId, orderId)
 
     override fun openShort(player: Player, item: ItemKey, quantity: Int): ShortResult =
         openShortUC.execute(player.uniqueId, item, quantity)

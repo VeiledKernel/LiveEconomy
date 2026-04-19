@@ -5,7 +5,6 @@ import dev.liveeconomy.core.economy.port.OrderBookPort
 import dev.liveeconomy.api.item.ItemKey
 import dev.liveeconomy.api.storage.OrderStore
 import dev.liveeconomy.data.model.TradeOrder
-import org.bukkit.entity.Player
 import java.time.Instant
 import java.util.UUID
 
@@ -34,7 +33,8 @@ class OrderBook(
     // ── Place ─────────────────────────────────────────────────────────────────
 
     fun place(
-        player:      Player,
+        playerUuid:  UUID,
+        playerName:  String,
         item:        ItemKey,
         quantity:    Int,
         targetPrice: Double,
@@ -44,13 +44,13 @@ class OrderBook(
         if (quantity <= 0 || targetPrice <= 0.0)
             return OrderResult.InvalidParameters
 
-        val playerOrders = store.getPlayerOrders(player.uniqueId)
+        val playerOrders = store.getPlayerOrders(playerUuid)
         if (playerOrders.size >= maxOrders)
             return OrderResult.LimitReached
 
         val order = TradeOrder(
-            playerUUID  = player.uniqueId,
-            playerName  = player.name,
+            playerUUID  = playerUuid,
+            playerName  = playerName,
             item        = item,
             quantity    = quantity,
             targetPrice = targetPrice,
@@ -65,8 +65,8 @@ class OrderBook(
 
     // ── Cancel ────────────────────────────────────────────────────────────────
 
-    fun cancel(player: Player, orderId: String): OrderResult {
-        val playerOrders = store.getPlayerOrders(player.uniqueId)
+    fun cancel(playerUuid: UUID, orderId: String): OrderResult {
+        val playerOrders = store.getPlayerOrders(playerUuid)
         val order = playerOrders.firstOrNull { it.orderId == orderId }
             ?: return OrderResult.NotFound
 
