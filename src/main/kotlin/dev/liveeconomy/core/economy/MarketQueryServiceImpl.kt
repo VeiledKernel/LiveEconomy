@@ -26,10 +26,7 @@ class MarketQueryServiceImpl(
     override fun getItem(item: ItemKey): MarketItem?          = registry.getItem(item)
     override fun getAllItems(): Map<ItemKey, MarketItem>       = registry.getAllItems().values.associateBy { it.itemKey }
     override fun getPriceHistory(item: ItemKey, page: Int): List<PriceCandle> = store.getCandles(item, page)
-    override fun getOpenOrders(item: ItemKey): List<TradeOrder>               = orderBook.getPlayerOrders(java.util.UUID.randomUUID()).let {
-        // Delegate properly via full order book
-        emptyList() // placeholder — Phase 4 wires the full query via OrderStore
-    }
+    override fun getOpenOrders(item: ItemKey): List<TradeOrder> = orderBook.getOpenOrders(item)
     override fun getPlayerOrders(playerUuid: UUID): List<TradeOrder>          = orderBook.getPlayerOrders(playerUuid)
     override fun getItemStats(item: ItemKey): ItemStats?                       = store.getItemStats(item)
     override fun getTopItemsByVolume(limit: Int): List<Pair<ItemKey, Double>>  =

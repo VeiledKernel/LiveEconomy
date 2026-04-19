@@ -10,17 +10,16 @@ import dev.liveeconomy.api.storage.TransactionStore
 import dev.liveeconomy.core.economy.port.PriceRegistry
 import dev.liveeconomy.data.model.TradeAction
 import dev.liveeconomy.data.model.Transaction
-import org.bukkit.entity.Player
+import java.util.UUID
 
 /**
- * Orchestrates closing a short position with settlement, P&L recording,
- * and event publication.
+ * Orchestrates closing a short position with settlement and P&L recording.
+ *
+ * **No Bukkit imports.** Accepts [UUID] instead of Player.
+ * Thread-agnostic — all Bukkit concerns handled by caller.
  *
  * Coordinates [PriceRegistry], [WalletService], [PortfolioStore],
- * [TransactionStore], and [DomainEventBus] — belongs in a use case (Rule 8).
- *
- * [TradeServiceImpl.closeShort] delegates here entirely.
- * Must be called on the main thread.
+ * [TransactionStore], and [DomainEventBus] (Rule 8 — 3+ collaborators).
  */
 class CloseShortUseCase(
     private val registry:  PriceRegistry,
@@ -29,37 +28,23 @@ class CloseShortUseCase(
     private val txStore:   TransactionStore,
     private val eventBus:  DomainEventBus
 ) {
-    fun execute(player: Player, item: ItemKey): ShortResult {
-        val position   = portfolio.getShortPositions(player.uniqueId)[item]
+    fun execute(playerUuid: UUID, item: ItemKey): ShortResult {
+        val position   = portfolio.getShortPositions(playerUuid)[item]
             ?: return ShortResult.NoPosition
         val marketItem = registry.getItem(item) ?: return ShortResult.NotListed
 
         val pnl        = position.unrealisedPnl(marketItem.currentPrice)
         val settlement = (position.collateral + pnl).coerceAtLeast(0.0)
 
-        // Settle: return collateral ± P&L
-        wallet.deposit(player, settlement)
+        wallet.deposit(playerUuid, settlement)
+        portfolio.removeShortPosition(playerUuid, item)
+        portfolio.addPnl(playerUuid, java.math.BigDecimal.valueOf(pnl))
 
-        portfolio.removeShortPosition(player.uniqueId, item)
-        portfolio.addPnl(player.uniqueId, java.math.BigDecimal.valueOf(pnl))
+        txStore.append(Transaction(playerUuid, System.currentTimeMillis(), item,
+            TradeAction.SHORT_CLOSE, position.quantity, marketItem.currentPrice, pnl))
 
-        txStore.append(Transaction(
-            playerUuid = player.uniqueId,
-            timestamp  = System.currentTimeMillis(),
-            item       = item,
-            action     = TradeAction.SHORT_CLOSE,  // correct — distinct from SELL
-            quantity   = position.quantity,
-            unitPrice  = marketItem.currentPrice,
-            total      = pnl
-        ))
-
-        eventBus.publish(ShortClosedEvent(
-            playerUuid = player.uniqueId,
-            item       = item,
-            quantity   = position.quantity,
-            exitPrice  = marketItem.currentPrice,
-            pnl        = pnl
-        ))
+        eventBus.publish(ShortClosedEvent(playerUuid, item, position.quantity,
+            marketItem.currentPrice, pnl))
 
         return ShortResult.Closed(pnl = pnl)
     }

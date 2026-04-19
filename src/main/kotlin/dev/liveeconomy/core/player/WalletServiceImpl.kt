@@ -30,6 +30,31 @@ class WalletServiceImpl(
     override fun has(player: Player, amount: Double): Boolean =
         getBalance(player) >= amount
 
+    override fun has(uuid: UUID, amount: Double): Boolean =
+        getBalance(uuid) >= amount
+
+    override fun deposit(uuid: UUID, amount: Double): DepositResult {
+        if (amount <= 0.0) return DepositResult.InvalidAmount
+        return try {
+            store.setBalance(uuid, store.getBalance(uuid) + amount)
+            DepositResult.Success(newBalance = store.getBalance(uuid))
+        } catch (e: Exception) {
+            DepositResult.ProviderFailure(e.message ?: "Unknown error")
+        }
+    }
+
+    override fun withdraw(uuid: UUID, amount: Double): WithdrawResult {
+        if (amount <= 0.0) return WithdrawResult.InvalidAmount
+        val balance = getBalance(uuid)
+        if (balance < amount) return WithdrawResult.InsufficientFunds(available = balance)
+        return try {
+            store.setBalance(uuid, balance - amount)
+            WithdrawResult.Success(newBalance = getBalance(uuid))
+        } catch (e: Exception) {
+            WithdrawResult.ProviderFailure(e.message ?: "Unknown error")
+        }
+    }
+
     override fun deposit(player: Player, amount: Double): DepositResult {
         if (amount <= 0.0) return DepositResult.InvalidAmount
         return try {

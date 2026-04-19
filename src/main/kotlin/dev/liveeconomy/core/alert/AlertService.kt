@@ -10,8 +10,7 @@ import dev.liveeconomy.data.config.VipConfig
 import dev.liveeconomy.data.model.Alert
 import dev.liveeconomy.data.model.Direction
 import dev.liveeconomy.util.SoundUtil
-import org.bukkit.Bukkit
-import org.bukkit.entity.Player
+import dev.liveeconomy.core.usecase.port.PlayerResolver
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -26,7 +25,8 @@ import java.util.concurrent.ConcurrentHashMap
 class AlertService(
     private val config:    MarketConfig,
     private val vipConfig: VipConfig,
-    private val scheduler: Scheduler
+    private val scheduler: Scheduler,
+    private val playerResolver: PlayerResolver
 ) : DomainEventHandler {
 
     private val alerts = ConcurrentHashMap<UUID, MutableList<Alert>>()
@@ -84,15 +84,12 @@ class AlertService(
 
         for ((uuid, alert) in fired) {
             alerts[uuid]?.remove(alert)
+            val dir = if (alert.direction == Direction.ABOVE) "§aabove" else "§cbelow"
+            val msg = "§8[§6§lMarket§8] §r§e🔔 §f${alert.item.displayName()} " +
+                "is now $dir §6\$${String.format("%.2f", alert.targetPrice)} " +
+                "§8— §7now \$${String.format("%.2f", currentPrice)}"
             scheduler.runOnMain {
-                val player: Player = Bukkit.getPlayer(uuid) ?: return@runOnMain
-                val dir   = if (alert.direction == Direction.ABOVE) "§aabove" else "§cbelow"
-                player.sendMessage(
-                    "§8[§6§lMarket§8] §r§e🔔 §f${alert.item.displayName()} " +
-                    "is now $dir §6\$${String.format("%.2f", alert.targetPrice)} " +
-                    "§8— §7now \$${String.format("%.2f", currentPrice)}"
-                )
-                SoundUtil.play(player, org.bukkit.Sound.BLOCK_BELL_USE, volume = 0.9f, pitch = 1.4f)
+                playerResolver.withOnlinePlayer(uuid) { sendMessage(msg) }
             }
         }
     }

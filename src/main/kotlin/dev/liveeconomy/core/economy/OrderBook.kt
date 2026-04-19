@@ -76,7 +76,7 @@ class OrderBook(
 
     // ── Query ─────────────────────────────────────────────────────────────────
 
-    fun getOpenOrders(item: ItemKey): List<TradeOrder>    = store.getOpenOrders(item)
+    override fun getOpenOrders(item: ItemKey): List<TradeOrder> = store.getOpenOrders(item)
     fun getPlayerOrders(uuid: UUID): List<TradeOrder>     = store.getPlayerOrders(uuid)
     fun getAllOpenOrders(): List<TradeOrder>               = store.getAllOpenOrders()
 

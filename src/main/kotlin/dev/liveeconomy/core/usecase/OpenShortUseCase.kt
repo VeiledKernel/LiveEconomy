@@ -5,7 +5,6 @@ import dev.liveeconomy.api.event.DomainEventBus
 import dev.liveeconomy.api.event.ShortOpenedEvent
 import dev.liveeconomy.api.item.ItemKey
 import dev.liveeconomy.api.player.WalletService
-import dev.liveeconomy.api.player.result.WithdrawResult
 import dev.liveeconomy.api.storage.PortfolioStore
 import dev.liveeconomy.api.storage.TransactionStore
 import dev.liveeconomy.core.economy.port.PriceRegistry
@@ -13,16 +12,16 @@ import dev.liveeconomy.data.config.MarketConfig
 import dev.liveeconomy.data.model.ShortPosition
 import dev.liveeconomy.data.model.TradeAction
 import dev.liveeconomy.data.model.Transaction
-import org.bukkit.entity.Player
+import java.util.UUID
 
 /**
  * Orchestrates opening a short position.
  *
- * Coordinates [PriceRegistry], [WalletService], [PortfolioStore],
- * [TransactionStore], and [DomainEventBus] — belongs in a use case (Rule 8).
+ * **No Bukkit imports.** Accepts [UUID] instead of Player.
+ * Thread-agnostic — all Bukkit concerns handled by caller.
  *
- * [TradeServiceImpl.openShort] delegates here entirely.
- * Must be called on the main thread.
+ * Coordinates [PriceRegistry], [WalletService], [PortfolioStore],
+ * [TransactionStore], and [DomainEventBus] (Rule 8 — 3+ collaborators).
  */
 class OpenShortUseCase(
     private val registry:  PriceRegistry,
@@ -32,44 +31,34 @@ class OpenShortUseCase(
     private val eventBus:  DomainEventBus,
     private val config:    MarketConfig
 ) {
-    fun execute(player: Player, item: ItemKey, quantity: Int): ShortResult {
+    fun execute(playerUuid: UUID, item: ItemKey, quantity: Int): ShortResult {
         if (!config.allowShortSelling) return ShortResult.Disabled
 
         val marketItem = registry.getItem(item) ?: return ShortResult.NotListed
 
-        if (portfolio.getShortPositions(player.uniqueId).containsKey(item))
+        if (portfolio.getShortPositions(playerUuid).containsKey(item))
             return ShortResult.AlreadyOpen
 
         val collateral = marketItem.currentPrice * quantity * config.shortCollateralRatio
 
-        if (wallet.withdraw(player, collateral) is WithdrawResult.InsufficientFunds)
+        if (!wallet.has(playerUuid, collateral))
             return ShortResult.InsufficientCollateral
 
+        wallet.withdraw(playerUuid, collateral)
+
         portfolio.saveShortPosition(ShortPosition(
-            playerUuid = player.uniqueId,
+            playerUuid = playerUuid,
             item       = item,
             quantity   = quantity,
             entryPrice = marketItem.currentPrice,
             collateral = collateral
         ))
 
-        txStore.append(Transaction(
-            playerUuid = player.uniqueId,
-            timestamp  = System.currentTimeMillis(),
-            item       = item,
-            action     = TradeAction.SHORT_OPEN,
-            quantity   = quantity,
-            unitPrice  = marketItem.currentPrice,
-            total      = collateral
-        ))
+        txStore.append(Transaction(playerUuid, System.currentTimeMillis(), item,
+            TradeAction.SHORT_OPEN, quantity, marketItem.currentPrice, collateral))
 
-        eventBus.publish(ShortOpenedEvent(
-            playerUuid = player.uniqueId,
-            item       = item,
-            quantity   = quantity,
-            entryPrice = marketItem.currentPrice,
-            collateral = collateral
-        ))
+        eventBus.publish(ShortOpenedEvent(playerUuid, item, quantity,
+            marketItem.currentPrice, collateral))
 
         return ShortResult.Opened(collateral = collateral, entryPrice = marketItem.currentPrice)
     }

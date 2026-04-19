@@ -19,5 +19,6 @@ internal interface OrderBookPort {
     fun getTriggeredOrders(item: ItemKey, currentPrice: Double): List<TradeOrder>
     fun markFilled(orderId: String)
     fun pruneExpired(item: ItemKey): Int
+    fun getOpenOrders(item: ItemKey): List<TradeOrder>
     fun getPlayerOrders(uuid: UUID): List<TradeOrder>
 }

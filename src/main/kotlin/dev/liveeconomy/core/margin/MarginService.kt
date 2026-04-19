@@ -6,8 +6,7 @@ import dev.liveeconomy.api.scheduler.Scheduler
 import dev.liveeconomy.api.storage.PortfolioStore
 import dev.liveeconomy.core.economy.PriceServiceImpl
 import dev.liveeconomy.data.config.MarketConfig
-import org.bukkit.Bukkit
-import org.bukkit.entity.Player
+import dev.liveeconomy.core.usecase.port.PlayerResolver
 import java.util.UUID
 
 /**
@@ -23,7 +22,8 @@ class MarginService(
     private val portfolio: PortfolioStore,
     private val wallet:    WalletService,
     private val config:    MarketConfig,
-    private val scheduler: Scheduler
+    private val scheduler: Scheduler,
+    private val playerResolver: PlayerResolver
 ) {
     fun checkAllMargins() {
         val allShorts = portfolio.getAllShortPositions()
@@ -50,21 +50,22 @@ class MarginService(
         portfolio.removeShortPosition(uuid, item)
         portfolio.addPnl(uuid, java.math.BigDecimal.valueOf(pnl))
 
+        wallet.deposit(uuid, settlement)
         scheduler.runOnMain {
-            val player: Player = Bukkit.getPlayer(uuid) ?: return@runOnMain
-            wallet.deposit(player, settlement)
-            player.sendMessage(
-                "§8[§6§lMarket§8] §r§c⚠ Margin liquidation: §f${item.displayName()} §cposition force-closed."
-            )
+            playerResolver.withOnlinePlayer(uuid) {
+                sendMessage("§8[§6§lMarket§8] §r§c⚠ Margin liquidation: §f${item.displayName()} §cposition force-closed.")
+            }
         }
     }
 
     private fun warnMarginCall(uuid: UUID, item: ItemKey, marginPct: Double) {
         scheduler.runOnMain {
-            Bukkit.getPlayer(uuid)?.sendMessage(
-                "§8[§6§lMarket§8] §r§e⚠ Margin call on §f${item.displayName()}§e — " +
-                "margin level ${String.format("%.0f", marginPct)}%%. Add funds or close."
-            )
+            playerResolver.withOnlinePlayer(uuid) {
+                sendMessage(
+                    "§8[§6§lMarket§8] §r§e⚠ Margin call on §f${item.displayName()}§e — " +
+                    "margin level ${String.format("%.0f", marginPct)}%%. Add funds or close."
+                )
+            }
         }
     }
 }

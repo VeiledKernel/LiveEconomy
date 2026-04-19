@@ -37,6 +37,21 @@ interface WalletService {
     fun has(player: Player, amount: Double): Boolean
 
     /**
+     * UUID-based balance check — usable from thread-agnostic contexts (use cases).
+     */
+    fun has(uuid: java.util.UUID, amount: Double): Boolean
+
+    /**
+     * UUID-based deposit — use cases call this instead of the Player-based overload.
+     */
+    fun deposit(uuid: java.util.UUID, amount: Double): DepositResult
+
+    /**
+     * UUID-based withdrawal — use cases call this instead of the Player-based overload.
+     */
+    fun withdraw(uuid: java.util.UUID, amount: Double): WithdrawResult
+
+    /**
      * Deposit [amount] into [player]'s balance.
      * Returns [DepositResult.Success] or a typed failure.
      */
