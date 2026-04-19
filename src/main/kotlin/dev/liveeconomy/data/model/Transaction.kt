@@ -25,10 +25,14 @@ data class Transaction(
     }
 }
 
-/** Whether a transaction was a purchase or a sale. */
+/** Whether a transaction was a purchase, sale, or short position operation. */
 enum class TradeAction {
     BUY,
-    SELL;
+    SELL,
+    SHORT_OPEN,
+    SHORT_CLOSE;
 
-    val label: String get() = name.lowercase().replaceFirstChar(Char::uppercase)
+    val label: String get() = name.lowercase()
+        .replace('_', ' ')
+        .replaceFirstChar(Char::uppercase)
 }
