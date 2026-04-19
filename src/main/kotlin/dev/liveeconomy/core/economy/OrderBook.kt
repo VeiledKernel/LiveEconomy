@@ -25,9 +25,19 @@ class OrderBook(
     private val maxOrders: Int = 10
 ) : OrderBookPort {
 
-    /** Loaded once at startup from the store. */
+    /**
+     * Load persisted orders from the store into memory.
+     * Called once at startup after [YamlStorageProvider.start].
+     * [InMemoryOrderStore.loadOpenOrders] returns empty list — no-op in Phase 3.
+     * [YamlOrderStore.loadOpenOrders] restores all non-expired orders from disk.
+     */
     fun init() {
-        store.loadOpenOrders() // Phase 4 impls populate from disk here
+        val persisted = store.loadOpenOrders()
+        // Orders are already in the store's in-memory map after loadOpenOrders().
+        // No additional action needed — getOpenOrders() reads from the store directly.
+        if (persisted.isNotEmpty()) {
+            System.out.println("[OrderBook] Restored ${persisted.size} open limit orders from storage.")
+        }
     }
 
     // ── Place ─────────────────────────────────────────────────────────────────
