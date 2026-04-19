@@ -8,21 +8,25 @@
 
 ## ⚠️ License & Usage Notice
 
-**This repository is NOT open-source.**
+**This repository is NOT open-source. No license is granted.**
 
 All code in this repository is **protected intellectual property** of the author.
+**No license is granted to use this code in production, plugins, or derivatives.**
+Viewing for reference purposes does not constitute a license to use, copy, or adapt.
 
 ### You are NOT allowed to:
 
 * Copy, reuse, or redistribute this code (in whole or in part)
 * Upload modified versions to public or private repositories
 * Use this code in your own plugins or commercial products
+* Adapt, derive, or build upon any portion of this code
 
 ### You ARE allowed to:
 
 * View the code for reference and learning purposes only
 
-Any unauthorized use will be treated as a violation of intellectual property rights.
+**Viewing ≠ license.** Any other use — including partial reuse — is unauthorized
+and will be treated as a violation of intellectual property rights.
 
 ---
 
