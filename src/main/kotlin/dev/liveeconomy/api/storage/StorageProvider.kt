@@ -1,6 +1,6 @@
 package dev.liveeconomy.api.storage
 
-import dev.liveeconomy.platform.Lifecycle
+import dev.liveeconomy.api.Lifecycle
 
 /**
  * Factory interface for all storage backends.

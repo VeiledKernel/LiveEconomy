@@ -1,7 +1,7 @@
 package dev.liveeconomy.api.event
 
 import dev.liveeconomy.api.ExperimentalLiveEconomyAPI
-import dev.liveeconomy.platform.Lifecycle
+import dev.liveeconomy.api.Lifecycle
 
 /**
  * Internal synchronous event bus for LiveEconomy domain events.

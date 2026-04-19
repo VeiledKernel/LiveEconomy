@@ -10,13 +10,24 @@ import org.bukkit.entity.Player
 /**
  * Write operations for the LiveEconomy market.
  *
- * All methods MUST be called on the main thread — they touch player
- * inventory and economy balances which are Bukkit-unsafe off-thread.
- * Implementations must enforce this via Paper's thread checks.
+ * **Threading contract (permanent for v4.x):**
+ * All methods in this interface MUST be called on the main server thread.
+ * This is a conscious, permanent API constraint — not an implementation detail.
  *
- * Internal engine methods (processLimitOrders, tick updates, shock
- * application) are NOT part of this interface — they are internal
- * orchestration concerns.
+ * Rationale: trade execution touches player inventory, economy balances,
+ * and Bukkit events simultaneously. These are all main-thread-only operations
+ * in the Paper API. Making trades async-safe would require a different API
+ * surface (futures/callbacks) that is out of scope for v4.x.
+ *
+ * Implementations enforce this via Paper's `ThreadCheckPlugin.checkMainThread()`.
+ * Callers that invoke these methods off-thread will receive an
+ * [IllegalStateException] in development environments.
+ *
+ * If you need to trigger a trade from an async context, use
+ * `Scheduler.runOnMain { trade.executeBuy(...) }`.
+ *
+ * Internal engine methods (processLimitOrders, tick updates, shock application)
+ * are NOT part of this interface — they are internal orchestration concerns.
  *
  * Inject this interface when you need to execute trades:
  * ```kotlin
