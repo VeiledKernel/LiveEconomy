@@ -73,7 +73,8 @@ Current stage:
 * ✅ Phase 1 — Foundation complete
 * ✅ Phase 2 — API layer complete
 * ✅ Phase 3 — Core system refactor complete
-* 🚧 Phase 4 — Storage refactor (initialized — YAML complete, SQL in progress)
+* ✅ Phase 4 — Storage layer complete (YAML + SQLite + MySQL)
+* 📋 Phase 5 — GUI split, commands, platform wiring
 
 ---
 

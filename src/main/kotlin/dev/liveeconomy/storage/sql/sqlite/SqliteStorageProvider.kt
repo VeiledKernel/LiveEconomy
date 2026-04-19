@@ -1,22 +1,21 @@
 package dev.liveeconomy.storage.sql.sqlite
 
+import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.HikariDataSource
 import dev.liveeconomy.api.item.ItemKeyMapper
 import dev.liveeconomy.data.config.StorageConfig
-import dev.liveeconomy.storage.sql.SqlDialect
 import dev.liveeconomy.storage.sql.SqlStorageProvider
 import dev.liveeconomy.storage.sql.SqliteDialect
 import java.io.File
-import java.sql.Connection
-import java.sql.DriverManager
 
 /**
  * SQLite implementation of [SqlStorageProvider].
  *
- * Uses [SqliteDialect] for `ON CONFLICT ... DO UPDATE SET` upsert syntax.
- * WAL journal mode for better read concurrency on the main thread.
+ * Uses HikariCP with `maximumPoolSize=1` — SQLite supports one writer
+ * at a time, so a single-connection pool is the correct configuration.
+ * WAL journal mode allows concurrent reads while a write is in progress.
  *
- * File: `plugins/LiveEconomy/<config.sqliteFile>`
- * Driver: `org.sqlite.JDBC` loaded via reflection — no compile-time dep.
+ * DEBT-1: CLEARED — pool-backed via HikariCP.
  */
 class SqliteStorageProvider(
     private val dataFolder: File,
@@ -24,13 +23,14 @@ class SqliteStorageProvider(
     mapper:                 ItemKeyMapper
 ) : SqlStorageProvider(mapper, SqliteDialect) {
 
-    override val connection: Connection by lazy {
-        Class.forName("org.sqlite.JDBC")
-        val dbFile = File(dataFolder, config.sqliteFile)
-        dbFile.parentFile?.mkdirs()
-        DriverManager.getConnection("jdbc:sqlite:${dbFile.absolutePath}").also { conn ->
-            conn.createStatement().use { it.execute("PRAGMA journal_mode=WAL") }
-            conn.createStatement().use { it.execute("PRAGMA foreign_keys=ON") }
-        }
+    override val dataSource: HikariDataSource by lazy {
+        val dbFile = File(dataFolder, config.sqliteFile).also { it.parentFile?.mkdirs() }
+        HikariDataSource(HikariConfig().apply {
+            jdbcUrl          = "jdbc:sqlite:${dbFile.absolutePath}"
+            driverClassName  = "org.sqlite.JDBC"
+            maximumPoolSize  = 1      // SQLite is single-writer
+            connectionInitSql = "PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON"
+            poolName         = "LiveEconomy-SQLite"
+        })
     }
 }
