@@ -1,6 +1,7 @@
 package dev.liveeconomy.storage.yaml
 
 import dev.liveeconomy.api.storage.WalletStore
+import dev.liveeconomy.storage.yaml.AtomicYamlWriter
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
 import java.util.UUID
@@ -58,7 +59,7 @@ class YamlWalletStore(private val file: File) : WalletStore {
                        else YamlConfiguration()
             yaml.set("balances.${uuid}", balance)
             file.parentFile?.mkdirs()
-            yaml.save(file)
+            AtomicYamlWriter.save(yaml, file)
         }
     }
 
@@ -67,7 +68,7 @@ class YamlWalletStore(private val file: File) : WalletStore {
             val yaml = YamlConfiguration()
             balances.forEach { (uuid, bal) -> yaml.set("balances.$uuid", bal) }
             file.parentFile?.mkdirs()
-            yaml.save(file)
+            AtomicYamlWriter.save(yaml, file)
         }
     }
 }

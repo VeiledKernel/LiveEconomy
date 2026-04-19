@@ -5,6 +5,7 @@ import dev.liveeconomy.api.storage.PortfolioStore
 import dev.liveeconomy.api.item.ItemKeyMapper
 import dev.liveeconomy.data.model.PlayerStats
 import dev.liveeconomy.data.model.ShortPosition
+import dev.liveeconomy.storage.yaml.AtomicYamlWriter
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
 import java.math.BigDecimal
@@ -188,7 +189,7 @@ class YamlPortfolioStore(
             }
 
             file.parentFile?.mkdirs()
-            yaml.save(file)
+            AtomicYamlWriter.save(yaml, file)
         }
     }
 }

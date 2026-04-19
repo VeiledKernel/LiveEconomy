@@ -6,34 +6,52 @@ import dev.liveeconomy.api.storage.PriceStore
 import dev.liveeconomy.data.model.ItemStats
 import dev.liveeconomy.data.model.PriceCandle
 import java.sql.Connection
+import java.util.concurrent.ConcurrentHashMap
 
 /**
- * SQL-backed [PriceStore]. Current prices cached in memory; candles append-only.
+ * SQL-backed [PriceStore].
+ *
+ * **[saveCurrentPrice] contract (FIX #4):**
+ * Persists immediately to DB — not cache-only. The in-memory cache is
+ * a read optimisation only; every write goes to the database.
+ * [saveAllPrices] uses a batch upsert for efficiency when saving many
+ * prices at once (called by AutoSaveTask at end of each tick).
  */
 class SqlPriceStore(
-    private val conn:   Connection,
-    private val mapper: ItemKeyMapper
+    private val conn:    Connection,
+    private val mapper:  ItemKeyMapper,
+    private val dialect: SqlDialect
 ) : PriceStore {
 
-    private val priceCache = java.util.concurrent.ConcurrentHashMap<String, Double>()
+    private val priceCache = ConcurrentHashMap<String, Double>()
+
+    private val upsertPriceSql = dialect.upsert("current_prices", "item_id", "price")
+    private val upsertStatsSql = dialect.upsert("item_stats", "item_id",
+        "buy_volume", "sell_volume", "buy_qty", "sell_qty")
+
+    // ── Current prices ────────────────────────────────────────────────────────
 
     override fun getCurrentPrice(item: ItemKey): Double? =
-        priceCache[item.id] ?: conn.prepareStatement(
-            "SELECT price FROM current_prices WHERE item_id=?"
-        ).use { ps ->
-            ps.setString(1, item.id)
-            ps.executeQuery().use { rs -> if (rs.next()) rs.getDouble(1).also { priceCache[item.id] = it } else null }
+        priceCache[item.id] ?: run {
+            conn.prepareStatement("SELECT price FROM current_prices WHERE item_id=?").use { ps ->
+                ps.setString(1, item.id)
+                ps.executeQuery().use { rs ->
+                    if (rs.next()) rs.getDouble(1).also { priceCache[item.id] = it } else null
+                }
+            }
         }
 
+    /** FIX #4 — persists immediately to DB, not cache-only. */
     override fun saveCurrentPrice(item: ItemKey, price: Double) {
         priceCache[item.id] = price
+        conn.prepareStatement(upsertPriceSql).use { ps ->
+            ps.setString(1, item.id); ps.setDouble(2, price); ps.executeUpdate()
+        }
     }
 
     override fun saveAllPrices(prices: Map<ItemKey, Double>) {
-        priceCache.putAll(prices.mapKeys { it.key.id })
-        conn.prepareStatement(
-            "INSERT INTO current_prices(item_id,price) VALUES(?,?) ON CONFLICT(item_id) DO UPDATE SET price=excluded.price"
-        ).use { ps ->
+        prices.forEach { (item, price) -> priceCache[item.id] = price }
+        conn.prepareStatement(upsertPriceSql).use { ps ->
             for ((item, price) in prices) {
                 ps.setString(1, item.id); ps.setDouble(2, price); ps.addBatch()
             }
@@ -41,13 +59,16 @@ class SqlPriceStore(
         }
     }
 
+    // ── Candle history ────────────────────────────────────────────────────────
+
     override fun appendCandle(item: ItemKey, candle: PriceCandle) {
         conn.prepareStatement(
             "INSERT INTO price_candles(item_id,open,high,low,close,volume,timestamp) VALUES(?,?,?,?,?,?,?)"
         ).use { ps ->
             ps.setString(1, item.id); ps.setDouble(2, candle.open); ps.setDouble(3, candle.high)
-            ps.setDouble(4, candle.low); ps.setDouble(5, candle.close); ps.setDouble(6, candle.volume)
-            ps.setLong(7, candle.timestamp); ps.executeUpdate()
+            ps.setDouble(4, candle.low); ps.setDouble(5, candle.close)
+            ps.setDouble(6, candle.volume); ps.setLong(7, candle.timestamp)
+            ps.executeUpdate()
         }
     }
 
@@ -55,7 +76,8 @@ class SqlPriceStore(
         val offset = (page - 1) * pageSize
         val result = mutableListOf<PriceCandle>()
         conn.prepareStatement(
-            "SELECT open,high,low,close,volume,timestamp FROM price_candles WHERE item_id=? ORDER BY timestamp DESC LIMIT ? OFFSET ?"
+            "SELECT open,high,low,close,volume,timestamp FROM price_candles " +
+            "WHERE item_id=? ORDER BY timestamp DESC LIMIT ? OFFSET ?"
         ).use { ps ->
             ps.setString(1, item.id); ps.setInt(2, pageSize); ps.setInt(3, offset)
             ps.executeQuery().use { rs ->
@@ -67,6 +89,8 @@ class SqlPriceStore(
         }
         return result
     }
+
+    // ── Item statistics ───────────────────────────────────────────────────────
 
     override fun getItemStats(item: ItemKey): ItemStats? =
         conn.prepareStatement("SELECT * FROM item_stats WHERE item_id=?").use { ps ->
@@ -83,11 +107,10 @@ class SqlPriceStore(
         }
 
     override fun updateItemStats(item: ItemKey, stats: ItemStats) {
-        conn.prepareStatement(
-            "INSERT INTO item_stats(item_id,buy_volume,sell_volume,buy_qty,sell_qty) VALUES(?,?,?,?,?) ON CONFLICT(item_id) DO UPDATE SET buy_volume=excluded.buy_volume,sell_volume=excluded.sell_volume,buy_qty=excluded.buy_qty,sell_qty=excluded.sell_qty"
-        ).use { ps ->
-            ps.setString(1, item.id); ps.setDouble(2, stats.buyVolume); ps.setDouble(3, stats.sellVolume)
-            ps.setInt(4, stats.buyQty); ps.setInt(5, stats.sellQty); ps.executeUpdate()
+        conn.prepareStatement(upsertStatsSql).use { ps ->
+            ps.setString(1, item.id); ps.setDouble(2, stats.buyVolume)
+            ps.setDouble(3, stats.sellVolume); ps.setInt(4, stats.buyQty)
+            ps.setInt(5, stats.sellQty); ps.executeUpdate()
         }
     }
 }

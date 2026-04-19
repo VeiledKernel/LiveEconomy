@@ -4,6 +4,7 @@ import dev.liveeconomy.api.storage.TransactionStore
 import dev.liveeconomy.api.item.ItemKeyMapper
 import dev.liveeconomy.data.model.TradeAction
 import dev.liveeconomy.data.model.Transaction
+import dev.liveeconomy.storage.yaml.AtomicYamlWriter
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
 import java.util.UUID
@@ -90,7 +91,7 @@ class YamlTransactionStore(
                 }
             }
             file.parentFile?.mkdirs()
-            yaml.save(file)
+            AtomicYamlWriter.save(yaml, file)
         }
     }
 }

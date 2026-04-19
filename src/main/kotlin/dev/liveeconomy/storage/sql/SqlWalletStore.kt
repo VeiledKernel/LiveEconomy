@@ -8,16 +8,21 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * SQL-backed [WalletStore].
  *
- * Uses an in-memory read cache — balances are written through to DB on every
- * [setBalance] call. Cache is populated lazily on first [getBalance].
+ * In-memory read cache populated lazily — cache is the hot path,
+ * DB is authoritative. All writes go to DB immediately via dialect upsert.
  */
-class SqlWalletStore(private val conn: Connection) : WalletStore {
+class SqlWalletStore(
+    private val conn:    Connection,
+    private val dialect: SqlDialect
+) : WalletStore {
 
     private val cache = ConcurrentHashMap<UUID, Double>()
 
+    private val upsertSql = dialect.upsert("wallets", "uuid", "balance")
+
     override fun getBalance(uuid: UUID): Double =
         cache.getOrPut(uuid) {
-            conn.prepareStatement("SELECT balance FROM wallets WHERE uuid = ?").use { ps ->
+            conn.prepareStatement("SELECT balance FROM wallets WHERE uuid=?").use { ps ->
                 ps.setString(1, uuid.toString())
                 ps.executeQuery().use { rs -> if (rs.next()) rs.getDouble(1) else 0.0 }
             }
@@ -25,9 +30,9 @@ class SqlWalletStore(private val conn: Connection) : WalletStore {
 
     override fun setBalance(uuid: UUID, balance: Double) {
         cache[uuid] = balance
-        conn.prepareStatement(
-            "INSERT INTO wallets(uuid, balance) VALUES(?,?) ON CONFLICT(uuid) DO UPDATE SET balance=excluded.balance"
-        ).use { ps -> ps.setString(1, uuid.toString()); ps.setDouble(2, balance); ps.executeUpdate() }
+        conn.prepareStatement(upsertSql).use { ps ->
+            ps.setString(1, uuid.toString()); ps.setDouble(2, balance); ps.executeUpdate()
+        }
     }
 
     override fun getAllBalances(): Map<UUID, Double> {

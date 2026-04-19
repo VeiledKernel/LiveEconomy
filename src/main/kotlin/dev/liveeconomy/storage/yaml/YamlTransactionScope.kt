@@ -5,14 +5,24 @@ import dev.liveeconomy.api.storage.TransactionScope
 /**
  * No-op [TransactionScope] for YAML backends.
  *
- * YAML has no real transaction support. Operations execute sequentially
- * with no rollback on failure — partial writes are possible on crash.
+ * **Known limitation — multi-store atomicity is not guaranteed.**
+ * YAML cannot provide atomic cross-store transactions. Example failure scenario:
+ * ```
+ * walletStore.withdraw(uuid, cost)   // succeeds, written to wallets.yml
+ * orderStore.addOrder(order)         // server crashes before this write
+ * // Result: money deducted, order never placed → inconsistent state
+ * ```
+ * Each individual store write is crash-safe (via [AtomicYamlWriter]),
+ * but there is no rollback mechanism across multiple stores.
  *
- * A warning is logged on first use to inform operators that they should
- * use a SQL backend for production deployments requiring ACID guarantees.
+ * **This is a documented, accepted limitation of the YAML backend.**
+ * It is consistent with the blueprint contract: YAML = best-effort,
+ * SQL = ACID. Use [dev.liveeconomy.storage.sql.SqlTransactionScope]
+ * with SQLite or MySQL for production deployments requiring atomicity.
  *
- * **Contract:** per [TransactionScope] KDoc, YAML is explicitly documented
- * as best-effort only. This implementation fulfils that contract.
+ * The `execute {}` wrapper exists to keep the interface consistent with
+ * [dev.liveeconomy.storage.sql.SqlTransactionScope] so callers don't
+ * need to know which backend they're using.
  */
 class YamlTransactionScope : TransactionScope {
 

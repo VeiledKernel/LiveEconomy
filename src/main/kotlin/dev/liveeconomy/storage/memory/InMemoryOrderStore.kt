@@ -50,10 +50,12 @@ class InMemoryOrderStore : OrderStore {
         }
     }
 
-    override fun getOpenOrders(item: ItemKey): List<TradeOrder> =
-        orders.values
-            .filter { it.item.id == item.id && !it.isExpired }
-            .sortedByDescending { it.targetPrice }
+    override fun getOpenOrders(item: ItemKey): List<TradeOrder> {
+        val active = orders.values.filter { it.item.id == item.id && !it.isExpired }
+        val buys   = active.filter {  it.isBuyOrder }.sortedByDescending { it.targetPrice }
+        val sells  = active.filter { !it.isBuyOrder }.sortedBy         { it.targetPrice }
+        return buys + sells
+    }
 
     override fun getPlayerOrders(playerUuid: UUID): List<TradeOrder> =
         orders.values

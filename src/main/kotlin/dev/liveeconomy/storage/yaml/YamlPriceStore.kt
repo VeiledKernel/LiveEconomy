@@ -5,6 +5,7 @@ import dev.liveeconomy.api.storage.PriceStore
 import dev.liveeconomy.api.item.ItemKeyMapper
 import dev.liveeconomy.data.model.ItemStats
 import dev.liveeconomy.data.model.PriceCandle
+import dev.liveeconomy.storage.yaml.AtomicYamlWriter
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
@@ -93,7 +94,7 @@ class YamlPriceStore(
             val yaml = YamlConfiguration()
             currentPrices.forEach { (id, price) -> yaml.set("prices.$id", price) }
             pricesFile.parentFile?.mkdirs()
-            yaml.save(pricesFile)
+            AtomicYamlWriter.save(yaml, pricesFile)
         }
     }
 
@@ -131,7 +132,7 @@ class YamlPriceStore(
             yaml.set("$base.timestamp", c.timestamp)
         }
         historyFile.parentFile?.mkdirs()
-        yaml.save(historyFile)
+        AtomicYamlWriter.save(yaml, historyFile)
     }
 
     // ── Item statistics ───────────────────────────────────────────────────────
@@ -148,6 +149,6 @@ class YamlPriceStore(
         yaml.set("$base.buyQty",     stats.buyQty)
         yaml.set("$base.sellQty",    stats.sellQty)
         statsFile.parentFile?.mkdirs()
-        yaml.save(statsFile)
+        AtomicYamlWriter.save(yaml, statsFile)
     }
 }

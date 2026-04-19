@@ -3,8 +3,8 @@ package dev.liveeconomy.storage.yaml
 import dev.liveeconomy.api.item.ItemKey
 import dev.liveeconomy.api.item.ItemKeyMapper
 import dev.liveeconomy.api.storage.OrderStore
-import dev.liveeconomy.api.item.ItemKeyMapper
 import dev.liveeconomy.data.model.TradeOrder
+import dev.liveeconomy.storage.yaml.AtomicYamlWriter
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
 import java.time.Instant
@@ -42,7 +42,8 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class YamlOrderStore(
     private val file:   File,
-    private val mapper: ItemKeyMapper
+    private val mapper: ItemKeyMapper,
+    private val txScope: YamlTransactionScope = YamlTransactionScope()
 ) : OrderStore {
 
     private val orders   = ConcurrentHashMap<String, TradeOrder>()
@@ -81,29 +82,31 @@ class YamlOrderStore(
         return orders.values.toList()
     }
 
-    // ── Mutations — write-through ─────────────────────────────────────────────
+    // ── Mutations — write-through, wrapped in TransactionScope ────────────────
 
-    override fun addOrder(order: TradeOrder) {
+    override fun addOrder(order: TradeOrder) = txScope.execute {
         orders[order.orderId] = order
         persist()
     }
 
-    override fun removeOrder(orderId: String) {
+    override fun removeOrder(orderId: String) = txScope.execute {
         orders.remove(orderId)
         persist()
     }
 
-    override fun updateOrder(order: TradeOrder) {
+    override fun updateOrder(order: TradeOrder) = txScope.execute {
         orders[order.orderId] = order
         persist()
     }
 
     // ── Queries ───────────────────────────────────────────────────────────────
 
-    override fun getOpenOrders(item: ItemKey): List<TradeOrder> =
-        orders.values
-            .filter { it.item.id == item.id && !it.isExpired }
-            .sortedByDescending { it.targetPrice }
+    override fun getOpenOrders(item: ItemKey): List<TradeOrder> {
+        val active = orders.values.filter { it.item.id == item.id && !it.isExpired }
+        val buys   = active.filter {  it.isBuyOrder }.sortedByDescending { it.targetPrice }
+        val sells  = active.filter { !it.isBuyOrder }.sortedBy         { it.targetPrice }
+        return buys + sells
+    }
 
     override fun getPlayerOrders(playerUuid: UUID): List<TradeOrder> =
         orders.values
@@ -130,7 +133,7 @@ class YamlOrderStore(
                 yaml.set("$path.expiryHours", order.expiryHours)
             }
             file.parentFile?.mkdirs()
-            yaml.save(file)
+            AtomicYamlWriter.save(yaml, file)
         }
     }
 }
