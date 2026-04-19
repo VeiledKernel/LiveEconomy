@@ -85,6 +85,7 @@ For licensing, collaboration, or commercial inquiries:
 
 * GitHub Issues (preferred)
 
+---
 
 All Rights Reserved
 
