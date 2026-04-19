@@ -2,7 +2,7 @@ package dev.liveeconomy.storage.yaml
 
 import dev.liveeconomy.api.item.ItemKey
 import dev.liveeconomy.api.storage.PriceStore
-import dev.liveeconomy.core.item.BukkitItemKeyMapper
+import dev.liveeconomy.api.item.ItemKeyMapper
 import dev.liveeconomy.data.model.ItemStats
 import dev.liveeconomy.data.model.PriceCandle
 import org.bukkit.configuration.file.YamlConfiguration
@@ -20,7 +20,7 @@ class YamlPriceStore(
     private val pricesFile:  File,
     private val historyFile: File,
     private val statsFile:   File,
-    private val mapper:      BukkitItemKeyMapper
+    private val mapper:      ItemKeyMapper
 ) : PriceStore {
 
     private val currentPrices = ConcurrentHashMap<String, Double>()       // itemId → price

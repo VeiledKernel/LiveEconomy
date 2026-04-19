@@ -1,7 +1,7 @@
 package dev.liveeconomy.storage.yaml
 
 import dev.liveeconomy.api.storage.TransactionStore
-import dev.liveeconomy.core.item.BukkitItemKeyMapper
+import dev.liveeconomy.api.item.ItemKeyMapper
 import dev.liveeconomy.data.model.TradeAction
 import dev.liveeconomy.data.model.Transaction
 import org.bukkit.configuration.file.YamlConfiguration
@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class YamlTransactionStore(
     private val file:   File,
-    private val mapper: BukkitItemKeyMapper
+    private val mapper: ItemKeyMapper
 ) : TransactionStore {
 
     private val txs      = ConcurrentHashMap<UUID, ArrayDeque<Transaction>>()

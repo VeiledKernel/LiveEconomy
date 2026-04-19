@@ -2,7 +2,7 @@ package dev.liveeconomy.storage.yaml
 
 import dev.liveeconomy.api.item.ItemKey
 import dev.liveeconomy.api.storage.PortfolioStore
-import dev.liveeconomy.core.item.BukkitItemKeyMapper
+import dev.liveeconomy.api.item.ItemKeyMapper
 import dev.liveeconomy.data.model.PlayerStats
 import dev.liveeconomy.data.model.ShortPosition
 import org.bukkit.configuration.file.YamlConfiguration
@@ -38,7 +38,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class YamlPortfolioStore(
     private val file:   File,
-    private val mapper: BukkitItemKeyMapper
+    private val mapper: ItemKeyMapper
 ) : PortfolioStore {
 
     private val holdings  = ConcurrentHashMap<UUID, ConcurrentHashMap<String, Int>>()

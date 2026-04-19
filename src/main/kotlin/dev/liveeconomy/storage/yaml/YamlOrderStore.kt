@@ -3,7 +3,7 @@ package dev.liveeconomy.storage.yaml
 import dev.liveeconomy.api.item.ItemKey
 import dev.liveeconomy.api.item.ItemKeyMapper
 import dev.liveeconomy.api.storage.OrderStore
-import dev.liveeconomy.core.item.BukkitItemKeyMapper
+import dev.liveeconomy.api.item.ItemKeyMapper
 import dev.liveeconomy.data.model.TradeOrder
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
@@ -42,7 +42,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class YamlOrderStore(
     private val file:   File,
-    private val mapper: BukkitItemKeyMapper
+    private val mapper: ItemKeyMapper
 ) : OrderStore {
 
     private val orders   = ConcurrentHashMap<String, TradeOrder>()

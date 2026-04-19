@@ -36,10 +36,18 @@ interface ItemKeyMapper {
     fun toMaterial(key: ItemKey): Material?
 
     /**
+     * Parse an [ItemKey] from a raw string in `namespace:key` format.
+     * Falls back to `minecraft` namespace if no colon is present.
+     *
+     * @throws IllegalArgumentException if the string cannot be parsed
+     */
+    fun fromString(raw: String): ItemKey
+
+    /**
      * Convert a Nexo item ID string to an [ItemKey].
      *
      * @param nexoId the raw Nexo item ID (e.g. `"ruby"`)
-     * @throws IllegalArgumentException if Nexo is not installed
+     * @throws IllegalStateException if Nexo is not installed
      */
     fun fromNexoId(nexoId: String): ItemKey
 

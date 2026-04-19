@@ -72,7 +72,8 @@ Current stage:
 
 * ✅ Phase 1 — Foundation complete
 * ✅ Phase 2 — API layer complete
-* 🚧 Phase 3 — Core system refactor (in progress)
+* ✅ Phase 3 — Core system refactor complete
+* 🚧 Phase 4 — Storage refactor (initialized — YAML complete, SQL in progress)
 
 ---
 

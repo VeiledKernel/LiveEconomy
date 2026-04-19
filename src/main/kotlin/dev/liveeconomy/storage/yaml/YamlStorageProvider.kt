@@ -6,7 +6,7 @@ import dev.liveeconomy.api.storage.PriceStore
 import dev.liveeconomy.api.storage.StorageProvider
 import dev.liveeconomy.api.storage.TransactionStore
 import dev.liveeconomy.api.storage.WalletStore
-import dev.liveeconomy.core.item.BukkitItemKeyMapper
+import dev.liveeconomy.api.item.ItemKeyMapper
 import java.io.File
 
 /**
@@ -34,7 +34,7 @@ import java.io.File
  */
 class YamlStorageProvider(
     private val dataFolder: File,
-    private val mapper:     BukkitItemKeyMapper
+    private val mapper:     ItemKeyMapper
 ) : StorageProvider {
 
     private val _orders      = YamlOrderStore(
