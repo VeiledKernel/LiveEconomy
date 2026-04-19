@@ -1,6 +1,7 @@
 package dev.liveeconomy.core.economy
 
 import dev.liveeconomy.api.economy.result.OrderResult
+import dev.liveeconomy.core.economy.port.OrderBookPort
 import dev.liveeconomy.api.item.ItemKey
 import dev.liveeconomy.api.storage.OrderStore
 import dev.liveeconomy.data.model.TradeOrder
@@ -23,7 +24,7 @@ import java.util.UUID
 class OrderBook(
     private val store:     OrderStore,
     private val maxOrders: Int = 10
-) {
+) : OrderBookPort {
 
     /** Loaded once at startup from the store. */
     fun init() {

@@ -1,6 +1,7 @@
 package dev.liveeconomy.core.economy
 
 import dev.liveeconomy.api.extension.PriceModifier
+import dev.liveeconomy.core.economy.port.TradePricingEngine
 import dev.liveeconomy.api.item.ItemKey
 import dev.liveeconomy.data.config.MarketConfig
 import dev.liveeconomy.data.model.MarketItem
@@ -24,7 +25,7 @@ import kotlin.math.ln
 class PriceModelImpl(
     private val config:    MarketConfig,
     private val modifiers: List<PriceModifier> = emptyList()
-) {
+) : TradePricingEngine {
 
     // ── Bid / Ask spread ──────────────────────────────────────────────────────
 
