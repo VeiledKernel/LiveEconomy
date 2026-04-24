@@ -20,6 +20,9 @@ data class MarketConfig(
     val marginCallLevel:          Double,
     val marginLiquidationLevel:   Double
 ) {
+    /** Trade tax as a 0.0–1.0 fraction (e.g. 2.0% → 0.02) */
+    val tradeTaxRate: Double get() = tradeTaxPercent / 100.0
+}
     /** Trade tax as a decimal rate (e.g. 2.0% → 0.02). */
     val tradeTaxRate: Double get() = tradeTaxPercent / 100.0
 

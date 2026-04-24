@@ -27,36 +27,36 @@
 
 ```
          ┌──────────────────────────────────────────┐
-         │              api/                        │ ← Bukkit + nothing else
-         │  (interfaces, events, ItemKey, results)  │   @Experimental until v4.1
+         │              api/                         │ ← Bukkit + nothing else
+         │  (interfaces, events, ItemKey, results)   │   @Experimental until v4.1
          └──────────────────┬───────────────────────┘
                             │ implements / uses
          ┌──────────────────▼───────────────────────┐
-         │              data/                       │ ← nothing
-         │  (pure models, typed configs)            │
+         │              data/                        │ ← nothing
+         │  (pure models, typed configs)             │
          └──────────────────┬───────────────────────┘
                             │ uses
          ┌──────────────────▼───────────────────────┐
-         │              core/                       │ ← api/ + data/ only
-         │  (service impls, use cases, domain logic)│   NO Bukkit, NO storage direct
+         │              core/                        │ ← api/ + data/ only
+         │  (service impls, use cases, domain logic) │   NO Bukkit, NO storage direct
          └───────┬──────────────────────┬───────────┘
                  │                      │
-    ┌────────────▼──────┐  ┌────────────▼───────────┐
-    │    storage/        │  │    integration/       │
+    ┌────────────▼──────┐  ┌────────────▼──────────┐
+    │    storage/        │  │    integration/        │
     │  (store impls)     │  │  (vault, nexo, papi)  │
     └────────────────────┘  └───────────────────────┘
                  │
     ┌────────────▼──────────────────────────────────┐
-    │           platform/                           │ ← ONLY layer with ServiceLocator
+    │           platform/                            │ ← ONLY layer with ServiceLocator
     │  (scheduler, config, listeners, Lifecycle.kt) │
     └───────┬───────────────────────────────────────┘
             │
     ┌───────▼───────────────────────────────────────┐
-    │       gui/ + command/                         │ ← api/ + EconomyFacade via DI
+    │       gui/ + command/                          │ ← api/ + EconomyFacade via DI
     └───────────────────────────────────────────────┘
             │
     ┌───────▼───────────────────────────────────────┐
-    │       LiveEconomy.kt                          │ ← composition root only (~100 lines)
+    │       LiveEconomy.kt                           │ ← composition root only (~100 lines)
     └───────────────────────────────────────────────┘
 ```
 
