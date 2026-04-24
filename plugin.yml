@@ -1,0 +1,106 @@
+name: LiveEconomy
+version: 3.0.0
+main: dev.liveeconomy.LiveEconomyPlugin
+api-version: 1.21
+authors: [ NexaStudios ]
+website: https://liveeconomy.dev
+description: A fully dynamic, player-driven economy engine for Minecraft servers.
+load: STARTUP
+
+softdepend:
+  - Vault
+  - VaultUnlocked
+  - Essentials
+  - PlaceholderAPI
+  - ItemsAdder
+  - Oraxen
+  - Nexo
+
+commands:
+  market:
+    description: Open the market GUI
+    usage: /market [role|search|history <item>|transactions [item]|stats [player]]
+    permission: liveeconomy.market
+  wallet:
+    description: View your wallet balance
+    usage: /wallet
+    permission: liveeconomy.wallet
+  portfolio:
+    description: View your portfolio
+    usage: /portfolio
+    permission: liveeconomy.portfolio
+  invest:
+    description: Investment tools
+    usage: /invest <alerts|alert <item> <price> <above|below>|prestige>
+    permission: liveeconomy.invest
+  short:
+    description: Short selling commands
+    usage: /short <open|close|list> [args...]
+    permission: liveeconomy.vip.short
+  leconomy:
+    description: Admin commands
+    usage: /leconomy <reload|crash|bull|shock|setprice|save>
+    permission: liveeconomy.admin
+    aliases: [ leco ]
+
+permissions:
+
+  # ── Tier 1 — Default (all players) ───────────────────────────
+  liveeconomy.market:
+    description: Open the market GUI and trade items
+    default: true
+
+  liveeconomy.wallet:
+    description: View your wallet balance (/wallet)
+    default: true
+
+  liveeconomy.portfolio:
+    description: View your portfolio and holdings (/portfolio)
+    default: true
+
+  liveeconomy.invest:
+    description: Access price alerts (/invest alert, /invest alerts)
+    default: true
+
+  # ── Tier 2 — VIP (sold by server owners) ─────────────────────
+  liveeconomy.vip.short:
+    description: "VIP: Access short selling (/short open, close, list)"
+    default: false
+
+  liveeconomy.vip.alerts.extra:
+    description: "VIP: +5 bonus price alert slots on top of base limit"
+    default: false
+
+  liveeconomy.vip.tax.discount:
+    description: "VIP: 10% trade tax reduction on all buys and sells"
+    default: false
+
+  liveeconomy.vip.cooldown.bypass:
+    description: "VIP: No cooldown between trades"
+    default: false
+
+  liveeconomy.vip.prestige:
+    description: "VIP: Access to the prestige system (/invest prestige)"
+    default: false
+
+  # ── VIP bundle — grant all VIP perks at once ──────────────────
+  liveeconomy.vip:
+    description: "VIP Bundle: All VIP perks combined"
+    default: false
+    children:
+      liveeconomy.vip.short:           true
+      liveeconomy.vip.alerts.extra:    true
+      liveeconomy.vip.tax.discount:    true
+      liveeconomy.vip.cooldown.bypass: true
+      liveeconomy.vip.prestige:        true
+
+  # ── Tier 3 — Admin (op only) ──────────────────────────────────
+  liveeconomy.admin:
+    description: Full admin access — all /leconomy commands, view any player stats
+    default: op
+    children:
+      liveeconomy.market:              true
+      liveeconomy.wallet:              true
+      liveeconomy.portfolio:           true
+      liveeconomy.invest:              true
+      liveeconomy.vip:                 true
