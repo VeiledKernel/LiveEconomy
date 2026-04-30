@@ -11,6 +11,11 @@ import dev.liveeconomy.data.config.GuiConfig
 import dev.liveeconomy.data.config.PrestigeConfig
 import dev.liveeconomy.data.model.MarketItem
 import dev.liveeconomy.gui.EconomyFacade
+import dev.liveeconomy.view.alert.AlertViewBuilder
+import dev.liveeconomy.view.market.MarketViewBuilder
+import dev.liveeconomy.view.mapper.ViewMapper
+import dev.liveeconomy.view.portfolio.PortfolioViewBuilder
+import dev.liveeconomy.view.wallet.WalletViewBuilder
 import dev.liveeconomy.gui.framework.MenuManager
 import dev.liveeconomy.gui.market.MarketGUI
 import dev.liveeconomy.gui.market.QuantitySelectorGUI
@@ -34,16 +39,14 @@ import org.bukkit.entity.Player
  * DI Rule 15: EconomyFacade ≤ 5 services — enforced here.
  */
 class GuiFactory(
-    private val economy:     EconomyFacade,
-    private val mapper:      ItemKeyMapper,
-    private val txStore:     TransactionStore,
-    private val roles:       RoleService,
-    private val prestige:    PrestigeService,
-    private val alerts:      AlertService,
-    private val scheduler:   Scheduler,
-    private val economyCfg:  EconomyConfig,
-    private val guiCfg:      GuiConfig,
-    private val prestigeCfg: PrestigeConfig
+    private val economy:    EconomyFacade,
+    private val mapper:     ItemKeyMapper,
+    private val txStore:    TransactionStore,
+    private val roles:      RoleService,
+    private val views:      ViewMapper,
+    private val scheduler:  Scheduler,
+    private val economyCfg: EconomyConfig,
+    private val guiCfg:     GuiConfig
 ) {
     // Shared listener — registered once as a Bukkit listener in PluginBoot
     val menuManager: MenuManager by lazy { MenuManager(scheduler) }
@@ -53,10 +56,7 @@ class GuiFactory(
     // ── Individual screen constructors ────────────────────────────────────────
 
     fun market(): MarketGUI = MarketGUI(
-        query          = economy.query,
-        price          = economy.price,
-        wallet         = economy.wallet,
-        alertService   = alerts,
+        views          = views,
         mapper         = mapper,
         config         = guiCfg,
         menuManager    = menuManager,
@@ -71,31 +71,21 @@ class GuiFactory(
     )
 
     fun wallet(): WalletGUI = WalletGUI(
-        wallet         = economy.wallet,
-        portfolio      = economy.portfolio,
-        price          = economy.price,
-        query          = economy.query,
-        roleService    = roles,
-        prestige       = prestige,
-        alertService   = alerts,
-        prestigeCfg    = prestigeCfg,
-        menuManager    = menuManager,
-        symbol         = sym,
-        openPortfolio  = { p -> portfolio().open(p) },
-        openOrderBook  = { p -> orderBook().open(p) },
-        openAlerts     = { p -> priceAlerts().open(p) },
+        viewMapper      = views,
+        menuManager     = menuManager,
+        symbol          = sym,
+        openPortfolio   = { p -> portfolio().open(p) },
+        openOrderBook   = { p -> orderBook().open(p) },
+        openAlerts      = { p -> priceAlerts().open(p) },
         openLeaderboard = { p -> leaderboard().open(p) }
     )
 
     fun portfolio(): PortfolioGUI = PortfolioGUI(
-        portfolio      = economy.portfolio,
-        price          = economy.price,
-        trade          = economy.trade,
-        wallet         = economy.wallet,
-        txStore        = txStore,
-        mapper         = mapper,
-        menuManager    = menuManager,
-        symbol         = sym
+        viewMapper   = views,
+        trade        = economy.trade,
+        mapper       = mapper,
+        menuManager  = menuManager,
+        symbol       = sym
     )
 
     fun orderBook(): OrderBookGUI = OrderBookGUI(
@@ -121,9 +111,8 @@ class GuiFactory(
     )
 
     fun priceAlerts(): PriceAlertGUI = PriceAlertGUI(
-        alertService = alerts,
-        price        = economy.price,
-        prestige     = prestige,
+        viewMapper   = views,
+        alertService = alertSvc(),
         menuManager  = menuManager,
         symbol       = sym
     )

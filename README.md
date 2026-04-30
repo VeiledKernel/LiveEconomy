@@ -73,7 +73,13 @@ Current stage:
 * ✅ Phase 1 — Foundation complete
 * ✅ Phase 2 — API layer complete
 * ✅ Phase 3 — Core system refactor complete
-* ✅ Phase 4 — Storage layer complete (YAML + SQLite + MySQL)
+* ✅ Phase 4 — Storage complete (YAML + SQLite + MySQL, HikariCP, migrations)
+* ✅ Phase 5A — Platform wiring complete
+* ✅ Phase 5B — GUI split complete
+* ✅ Phase 5C — View model layer complete
+* ⬜ Phase 6 — Command layer
+* ⬜ Phase 7 — Integrations (PAPI, Nexo, Essentials)
+* ⬜ Phase 8 — Polish & hardening
 * 📋 Phase 5 — GUI split, commands, platform wiring
 
 ---
