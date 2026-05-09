@@ -74,4 +74,22 @@ interface MarketQueryService {
      * @param limit maximum number of items to return
      */
     fun getTopItemsByVolume(limit: Int = 10): List<Pair<ItemKey, Double>>
+
+    /**
+     * Item with the highest current price. Returns null if market is empty.
+     * Pre-resolved by service — callers receive an [ItemKey] only, not a sorted list.
+     */
+    fun getTopPricedItem(): dev.liveeconomy.api.item.ItemKey?
+
+    /**
+     * Find a [MarketItem] by raw string ID (e.g. "minecraft:diamond", "nexo:ruby").
+     * Returns null if the item is not registered in the market.
+     */
+    fun findItemById(id: String): dev.liveeconomy.data.model.MarketItem?
+
+    /**
+     * Trigger a full rebuild of the item cache from config.
+     * Called by admin reload command.
+     */
+    fun rebuildCache()
 }

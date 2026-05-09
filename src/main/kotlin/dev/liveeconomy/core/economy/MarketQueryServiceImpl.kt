@@ -35,3 +35,15 @@ class MarketQueryServiceImpl(
             .sortedByDescending { it.second }
             .take(limit)
 }
+
+    // ── PAPI / admin convenience methods ──────────────────────────────────────
+
+    override fun getTopPricedItem(): dev.liveeconomy.api.item.ItemKey? =
+        registry.getAllItems().values
+            .maxByOrNull { priceStore.getCurrentPrice(it.itemKey) ?: 0.0 }
+            ?.itemKey
+
+    override fun findItemById(id: String): dev.liveeconomy.data.model.MarketItem? =
+        registry.getAllItems().values.firstOrNull { it.itemKey.id == id }
+
+    override fun rebuildCache() = registry.reload()

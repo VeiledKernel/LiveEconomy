@@ -2,6 +2,17 @@ package dev.liveeconomy
 
 import dev.liveeconomy.api.Lifecycle
 import dev.liveeconomy.api.LiveEconomyAPI
+import dev.liveeconomy.view.alert.AlertViewBuilder
+import dev.liveeconomy.view.mapper.ViewMapper
+import dev.liveeconomy.view.market.MarketViewBuilder
+import dev.liveeconomy.view.portfolio.PortfolioViewBuilder
+import dev.liveeconomy.view.wallet.WalletViewBuilder
+import dev.liveeconomy.boot.CommandRegistrar
+import dev.liveeconomy.platform.config.RuntimeReloadService
+import dev.liveeconomy.platform.config.CategoryLoader
+import dev.liveeconomy.boot.IntegrationRegistrar
+import dev.liveeconomy.boot.ListenerRegistrar
+import dev.liveeconomy.command.CommandFacade
 import dev.liveeconomy.api.economy.MarketQueryService
 import dev.liveeconomy.api.economy.PriceService
 import dev.liveeconomy.api.economy.TradeService
@@ -16,7 +27,7 @@ import dev.liveeconomy.core.economy.PriceServiceImpl
 import dev.liveeconomy.core.economy.TradeServiceImpl
 import dev.liveeconomy.core.event.DomainEventBusImpl
 import dev.liveeconomy.core.event.shock.*
-import dev.liveeconomy.core.item.BukkitItemKeyMapper
+import dev.liveeconomy.platform.item.BukkitItemKeyMapper
 import dev.liveeconomy.core.margin.MarginService
 import dev.liveeconomy.core.market.MarketRegistry
 import dev.liveeconomy.core.market.MarketTicker
@@ -55,17 +66,20 @@ class PluginBoot(
     private val lifecycles = mutableListOf<Lifecycle>()
 
     fun start() {
-        // 1. Item mapping + integrations
-        val nexoAvailable = plugin.server.pluginManager.getPlugin("Nexo") != null
-        val mapper  = BukkitItemKeyMapper(nexoAvailable)
-        val vault   = VaultGateway(plugin.server)
+        // 1. Integrations — detect before building mapper
+        val integrations = IntegrationRegistrar(plugin).register(configs.economy)
+        integrations.lifecycles.forEach { it.start(); lifecycles += it }
 
-        // 2. Storage
+        // 2. Item mapping + vault
+        val mapper = BukkitItemKeyMapper(integrations.nexo.enabled)
+        val vault  = VaultGateway(plugin.server)
+
+        // 3. Storage
         val storage = StorageFactory.create(configs.storage, plugin.dataFolder, mapper)
         storage.start()
         lifecycles += storage
 
-        // 3. Core services
+        // 4. Core services
         // FIX #1 — concrete impl held alongside interface alias, no unsafe cast needed
         val pricing      = PriceModelImpl(configs.market)
         val registry     = MarketRegistry(storage.price(), pricing)
@@ -77,14 +91,15 @@ class PluginBoot(
         val roleService      = RoleService(configs.roles)
         val prestigeService  = PrestigeService(storage.portfolio(), configs.prestige)
 
-        // 4. Event bus + subscribers
+        // 5. Event bus + subscribers
         val bus = DomainEventBusImpl().also { it.start() }
         lifecycles += bus
         val playerResolver = BukkitPlayerResolver()
-        bus.subscribe(AlertService(configs.market, configs.vip, scheduler, playerResolver))
+        val alertSvc       = AlertService(configs.market, configs.vip, scheduler, playerResolver)
+        bus.subscribe(alertSvc)
         bus.subscribe(AnalyticsService(storage.portfolio(), scheduler))
 
-        // 5. Use cases + platform adapters
+        // 6. Use cases + platform adapters
         val inventory    = BukkitInventoryGateway(mapper)
         val tradeUC      = ExecuteTradeUseCase(priceImpl,   // concrete — no cast
             pricing, inventory, walletSvc, storage.portfolio(),
@@ -104,7 +119,7 @@ class PluginBoot(
         val marginService = MarginService(registry, storage.portfolio(), walletSvc,
             configs.market, scheduler, playerResolver)
 
-        // 6. Shocks + ticker
+        // 7. Shocks + ticker
         val applier = ShockApplier(registry, pricing, bus)
         // FIX #2 — ShockRegistry stored, not silently discarded
         val shockRegistry = ShockRegistry(listOf(
@@ -122,13 +137,34 @@ class PluginBoot(
         val ticker = MarketTicker(registry, pricing, tradeImpl,  // concrete — no cast
             storage.price(), bus, configs.market)
 
-        // 7. Tasks — registered in lifecycles for automatic reverse-order shutdown
+        // 8. Tasks — registered in lifecycles for automatic reverse-order shutdown
         val tickTask = MarketTickTask(ticker, scheduler, configs.market).also { it.start() }
         val saveTask = AutoSaveTask(storage, registry, scheduler, configs.market).also { it.start() }
         lifecycles += tickTask
         lifecycles += saveTask
 
-        // 8. ServiceLocator — LAST (DI-RULES.md Rule 5)
+        // 9. View layer — must be built before GuiFactory
+        val views = ViewMapper(
+            walletBuilder    = WalletViewBuilder(walletSvc, portfolioSvc, roleService,
+                                   prestigeService, alertSvc, querySvc,
+                                   configs.prestige, configs.economy.currencySymbol),
+            portfolioBuilder = PortfolioViewBuilder(portfolioSvc, priceSvc, storage.transaction()),
+            marketBuilder    = MarketViewBuilder(querySvc, priceSvc, walletSvc, alertSvc,
+                                   configs.economy.currencySymbol),
+            alertBuilder     = AlertViewBuilder(alertSvc, priceSvc)
+        )
+
+        // 10. GUI factory
+        val guiFacade  = EconomyFacade(priceSvc, tradeSvc, walletSvc, portfolioSvc, querySvc)
+        val guiFactory = GuiFactory(guiFacade, mapper, storage.transaction(), roleService,
+                             views, scheduler, configs.economy, configs.gui)
+        ListenerRegistrar.register(plugin, guiFactory.menuManager)
+
+        // 11. Commands
+        val cmdFacade = CommandFacade(guiFacade, guiFactory, roleService, prestigeService, alertSvc)
+        CommandRegistrar.register(plugin, cmdFacade, storage)
+
+        // 12. ServiceLocator — LAST (DI-RULES.md Rule 5)
         ServiceLocator.init(priceSvc, tradeSvc, querySvc, walletSvc, portfolioSvc)
 
         // 9. Public API

@@ -1,4 +1,4 @@
-package dev.liveeconomy.core.item
+package dev.liveeconomy.platform.item
 
 import dev.liveeconomy.api.item.ItemKey
 import dev.liveeconomy.api.item.ItemKeyMapper

@@ -40,3 +40,21 @@ class PortfolioServiceImpl(
     override fun getPrestigeLevel(playerUuid: UUID): Int =
         store.getPrestigeLevel(playerUuid)
 }
+
+    // ── PAPI / view convenience methods ───────────────────────────────────────
+
+    override fun getPortfolioValueFormatted(playerUuid: UUID): String {
+        val holdings = getHoldings(playerUuid)
+        val total = holdings.entries.sumOf { (item, qty) ->
+            (priceService.getPrice(item) ?: 0.0) * qty
+        }
+        return dev.liveeconomy.util.MoneyFormat.compact(total)
+    }
+
+    override fun getPnlFormatted(playerUuid: UUID): String {
+        val pnl = getTotalPnl(playerUuid).toDouble()
+        return dev.liveeconomy.util.MoneyFormat.fullWithSign(pnl)
+    }
+
+    override fun getRole(playerUuid: UUID): dev.liveeconomy.data.model.PlayerRole =
+        store.getRole(playerUuid)

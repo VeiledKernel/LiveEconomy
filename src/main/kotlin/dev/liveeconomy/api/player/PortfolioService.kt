@@ -58,4 +58,20 @@ interface PortfolioService {
      * Prestige level for [playerUuid] (0 = no prestige).
      */
     fun getPrestigeLevel(playerUuid: UUID): Int
+
+    /**
+     * Total value of all holdings at current prices, pre-formatted for display.
+     * Calculation performed by impl — callers (PAPI, GUI) receive a string only.
+     */
+    fun getPortfolioValueFormatted(playerUuid: UUID): String
+
+    /**
+     * Lifetime P&L with sign prefix, pre-formatted for display (+$1,234 / -$234).
+     */
+    fun getPnlFormatted(playerUuid: UUID): String
+
+    /**
+     * Player's current trader role. Read-only convenience for PAPI/view layer.
+     */
+    fun getRole(playerUuid: UUID): dev.liveeconomy.data.model.PlayerRole
 }

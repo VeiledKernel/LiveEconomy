@@ -5,7 +5,6 @@ import dev.liveeconomy.api.extension.ShockHandler
 import dev.liveeconomy.api.item.ItemKey
 import dev.liveeconomy.api.item.ItemKeyMapper
 import dev.liveeconomy.data.config.EventsConfig
-import org.bukkit.event.block.BlockBreakEvent
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -23,7 +22,7 @@ class MiningShock(
     private val counters = ConcurrentHashMap<UUID, ConcurrentHashMap<String, Counter>>()
 
     override fun handle(event: DomainEvent) {
-        // MiningShock is triggered by Bukkit BlockBreakEvent via ShockListener — not DomainEvent
+        // Triggered by ShockListener.onBlockBreak() — this handle() is a no-op.
         // This handle() is a no-op; the Bukkit listener calls onBlockBreak() directly
     }
 

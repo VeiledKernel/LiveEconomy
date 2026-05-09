@@ -1,6 +1,7 @@
 package dev.liveeconomy.integration.vault
 
 import net.milkbowl.vault.economy.Economy
+import org.bukkit.Bukkit
 import org.bukkit.Server
 import org.bukkit.entity.Player
 import java.util.UUID
@@ -8,18 +9,28 @@ import java.util.UUID
 /**
  * Vault [Economy] implementation of [EconomyGateway].
  *
- * Loaded via Bukkit's ServiceManager — no compile-time dep on Vault's impl.
- * Falls back gracefully if Vault is absent.
+ * **Boot safety:** loaded via Bukkit's ServiceManager at construction time.
+ * If Vault is absent or no economy provider is registered, [isAvailable] is
+ * false and all methods are no-ops or return safe defaults. The plugin boots
+ * normally in all three scenarios:
+ *  - Vault not installed → [economy] is null
+ *  - Vault installed, no economy provider → [economy] is null
+ *  - Vault installed, economy provider present → fully operational
+ *
+ * **Isolation:** never imported by core/. All core wallet logic goes through
+ * [EconomyGateway] — this class is the only file that references Vault APIs.
  */
 class VaultGateway(server: Server) : EconomyGateway {
 
-    private val economy: Economy? = server.servicesManager
-        .getRegistration(Economy::class.java)?.provider
+    private val economy: Economy? = runCatching {
+        server.servicesManager.getRegistration(Economy::class.java)?.provider
+    }.getOrNull()
 
     override val isAvailable: Boolean get() = economy != null
 
-    override fun getBalance(player: Player): Double? =
-        economy?.getBalance(player)
+    // ── Online player overloads (called on main thread) ───────────────────────
+
+    override fun getBalance(player: Player): Double? = economy?.getBalance(player)
 
     override fun deposit(player: Player, amount: Double) {
         economy?.depositPlayer(player, amount)
@@ -30,24 +41,29 @@ class VaultGateway(server: Server) : EconomyGateway {
     }
 
     override fun setBalance(player: Player, amount: Double) {
-        economy?.let {
-            val current = it.getBalance(player)
-            if (current < amount) it.depositPlayer(player, amount - current)
-            else it.withdrawPlayer(player, current - amount)
+        economy?.let { eco ->
+            val current = eco.getBalance(player)
+            when {
+                amount > current -> eco.depositPlayer(player, amount - current)
+                amount < current -> eco.withdrawPlayer(player, current - amount)
+                // equal → no-op
+            }
         }
     }
 
+    // ── UUID overloads (offline-safe) ─────────────────────────────────────────
+
     override fun has(uuid: UUID, amount: Double): Boolean =
-        economy?.has(org.bukkit.Bukkit.getOfflinePlayer(uuid), amount) ?: false
+        economy?.has(Bukkit.getOfflinePlayer(uuid), amount) ?: false
 
     override fun getBalance(uuid: UUID): Double =
-        economy?.getBalance(org.bukkit.Bukkit.getOfflinePlayer(uuid)) ?: 0.0
+        economy?.getBalance(Bukkit.getOfflinePlayer(uuid)) ?: 0.0
 
     override fun deposit(uuid: UUID, amount: Double) {
-        economy?.depositPlayer(org.bukkit.Bukkit.getOfflinePlayer(uuid), amount)
+        economy?.depositPlayer(Bukkit.getOfflinePlayer(uuid), amount)
     }
 
     override fun withdraw(uuid: UUID, amount: Double) {
-        economy?.withdrawPlayer(org.bukkit.Bukkit.getOfflinePlayer(uuid), amount)
+        economy?.withdrawPlayer(Bukkit.getOfflinePlayer(uuid), amount)
     }
 }
